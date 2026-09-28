@@ -19,6 +19,8 @@ tb_server.log
 
 # 权重
 *.pt
+# 只放行 weights/ 下的最终模型（注意：gitignore 的行尾注释无效，注释必须单独成行）
+!weights/*.pt
 *.onnx
 *.engine
 *.torchscript
