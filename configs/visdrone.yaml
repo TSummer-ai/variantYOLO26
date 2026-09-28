@@ -1,0 +1,26 @@
+# VisDrone2019-DET 数据集配置（10 类，YOLO 格式）
+#
+# 准备步骤（见 scripts/prepare_visdrone.sh）：
+#   1. 下载 VisDrone2019-DET-train.zip / val.zip，解压
+#   2. 用 prepare_visdrone.sh 把官方标注转成 YOLO txt
+#      ⚠️ 关键坑：官方 JSON 的 category_id 是 0-based，ultralytics 的 convert_coco
+#         会做 id-1，所以 categories 和 annotations 都必须 +1，否则类别整体错位
+#   3. 把 train/val 图片软链或拷贝到 images/train、images/val
+#
+# path 建议用绝对路径，或用环境变量
+
+path: ${YOLO_ROOT}/datasets/visdrone
+train: train.txt
+val: val.txt
+
+names:
+  0: pedestrian
+  1: people
+  2: bicycle
+  3: car
+  4: van
+  5: truck
+  6: tricycle
+  7: awning-tricycle
+  8: bus
+  9: motor

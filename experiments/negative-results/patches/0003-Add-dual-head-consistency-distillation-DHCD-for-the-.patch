@@ -1,0 +1,182 @@
+From 9ccc96288dfa8ecb3e331e6df757f944943f7cbe Mon Sep 17 00:00:00 2001
+From: agent <agent@local>
+Date: Sat, 26 Sep 2026 15:31:18 +0800
+Subject: [PATCH] Add dual-head consistency distillation (DHCD) for the
+ NMS-free head
+
+YOLO26 supervises its NMS-free head with a single positive per object (tal_topk2=1)
+while Progressive Loss decays the one-to-many weight to 0.1, so that head stays
+under-confident and misses small objects that the one-to-many head detects. DHCD
+matches the one-to-one posteriors to the one-to-many posteriors on the anchors the
+teacher fires on (max class probability > 0.1), weighted by dhcd_w. The teacher is
+read under no_grad, so only the student receives gradient, the one-to-many branch is
+bit-identical to before, and inference cost is unchanged.
+---
+ test_dhcd.py                 | 84 ++++++++++++++++++++++++++++++++++++
+ ultralytics/cfg/__init__.py  |  1 +
+ ultralytics/cfg/default.yaml |  1 +
+ ultralytics/utils/loss.py    | 26 ++++++++++-
+ 4 files changed, 111 insertions(+), 1 deletion(-)
+ create mode 100644 test_dhcd.py
+
+diff --git a/test_dhcd.py b/test_dhcd.py
+new file mode 100644
+index 000000000..e3d606667
+--- /dev/null
++++ b/test_dhcd.py
+@@ -0,0 +1,84 @@
++#!/usr/bin/env python
++"""DHCD 定向验证。
++
++验收标准：
++  ① 蒸馏项给 student 传梯度（student 分类分支梯度变大）
++  ② 蒸馏项**不**给 teacher 传梯度（teacher 梯度逐位不变）
++  ③ dhcd_w=0 时不产生额外日志项
++
++注意：Detect 里 one2one 头是 one2many 头的 deepcopy，**初始化时两个头的输出完全相同**，
++此时 BCE 的梯度恰好为 0（σ(s)==t）。所以必须先扰动 student 让两头分开，验证才有意义。
++
++用法: PYTHONPATH=/home/wang/DeepSeek/YOLO/wt-dhcd python test_dhcd.py
++"""
++
++import torch
++from ultralytics.nn.tasks import DetectionModel
++from ultralytics.utils import DEFAULT_CFG_DICT, IterableSimpleNamespace
++
++CFG = "ultralytics/cfg/models/26/yolo26.yaml"
++BATCH = {
++    "batch_idx": torch.tensor([0.0, 0.0, 1.0]),
++    "cls": torch.tensor([3.0, 7.0, 1.0]),
++    "bboxes": torch.tensor([[0.5, 0.5, 0.05, 0.05], [0.2, 0.3, 0.1, 0.2], [0.7, 0.6, 0.02, 0.03]]),
++}
++
++
++def grads(model):
++    """取四个关键分支的梯度快照。"""
++    head = model.model[-1]
++    return {
++        "teacher_cls": head.cv3[0][-1].weight.grad.detach().clone(),
++        "teacher_box": head.cv2[0][-1].weight.grad.detach().clone(),
++        "student_cls": head.one2one_cv3[0][-1].weight.grad.detach().clone(),
++        "student_box": head.one2one_cv2[0][-1].weight.grad.detach().clone(),
++    }
++
++
++def main():
++    torch.manual_seed(0)
++    model = DetectionModel(CFG, nc=10, verbose=False)
++    args = IterableSimpleNamespace(**DEFAULT_CFG_DICT)
++    args.dhcd_w = 0.0
++    model.args = args
++    criterion = model.init_criterion()
++    model.train()
++
++    head = model.model[-1]
++    with torch.no_grad():
++        # 抬高分类输出层偏置（否则初始概率过低、教师 mask 为空），并让 student 与 teacher 分岔
++        head.cv3[0][-1].bias.fill_(0.5)
++        head.one2one_cv3[0][-1].bias.fill_(-1.0)
++        head.one2one_cv3[0][-1].weight.add_(0.3 * torch.randn_like(head.one2one_cv3[0][-1].weight))
++
++    x = torch.rand(2, 3, 640, 640)  # 两次运行共用同一输入
++
++    criterion.dhcd_w = 0.0
++    model.zero_grad()
++    loss0, items0 = criterion(model(x), BATCH)
++    loss0.sum().backward()
++    g0 = grads(model)
++
++    criterion.dhcd_w = 1.0
++    model.zero_grad()
++    loss1, items1 = criterion(model(x), BATCH)
++    loss1.sum().backward()
++    g1 = grads(model)
++
++    print(f"dhcd_w=0: loss={float(loss0.sum()):.6f} items={sorted(items0)}")
++    print(f"dhcd_w=1: loss={float(loss1.sum()):.6f} items={sorted(items1)} dhcd_loss={float(items1['dhcd_loss']):.6f}")
++    print(f"loss 增量 = {float(loss1.sum() - loss0.sum()):.6f}  (应等于 dhcd_loss)")
++    print()
++    for k in ("teacher_cls", "teacher_box"):
++        print(f"{k:12s} 逐位一致? {torch.equal(g0[k], g1[k])}   (必须 True —— 蒸馏不回传 teacher)")
++    for k in ("student_cls", "student_box"):
++        print(f"{k:12s} 梯度变化 = {(g1[k] - g0[k]).abs().sum().item():.6e}   (student_cls 必须 > 0)")
++    assert torch.equal(g0["teacher_cls"], g1["teacher_cls"]), "teacher 分类分支被蒸馏影响了"
++    assert torch.equal(g0["teacher_box"], g1["teacher_box"]), "teacher 回归分支被蒸馏影响了"
++    assert (g1["student_cls"] - g0["student_cls"]).abs().sum() > 0, "student 分类分支没收到蒸馏梯度"
++    assert "dhcd_loss" not in items0 and "dhcd_loss" in items1, "日志项不符合预期"
++    print("\n全部验收标准通过 ✅")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/ultralytics/cfg/__init__.py b/ultralytics/cfg/__init__.py
+index 461cc30ff..476f8e4c8 100644
+--- a/ultralytics/cfg/__init__.py
++++ b/ultralytics/cfg/__init__.py
+@@ -205,6 +205,7 @@ CFG_FLOAT_KEYS = frozenset(
+         "box",
+         "cls",
+         "dfl",
++        "dhcd_w",
+         "pose",
+         "kobj",
+         "rle",
+diff --git a/ultralytics/cfg/default.yaml b/ultralytics/cfg/default.yaml
+index 1152226f9..5a3cfab76 100644
+--- a/ultralytics/cfg/default.yaml
++++ b/ultralytics/cfg/default.yaml
+@@ -105,6 +105,7 @@ box: 7.5 # (float) box loss gain
+ cls: 0.5 # (float) classification loss gain
+ cls_pw: 0.0 # (float) class weights power for handling class imbalance (0.0=disable, 1.0=full inverse frequency)
+ dfl: 1.5 # (float) box distance loss gain (DFL when reg_max > 1, L1 on DFL-free YOLO26)
++dhcd_w: 0.0 # (float) dual-head consistency distillation weight: one-to-many teacher -> one-to-one student (0.0=off)
+ pose: 12.0 # (float) pose loss gain (pose tasks)
+ kobj: 1.0 # (float) keypoint objectness loss gain (pose tasks)
+ rle: 1.0 # (float) rle loss gain (pose tasks)
+diff --git a/ultralytics/utils/loss.py b/ultralytics/utils/loss.py
+index 262667a78..ecc26977f 100644
+--- a/ultralytics/utils/loss.py
++++ b/ultralytics/utils/loss.py
+@@ -1317,6 +1317,8 @@ class E2ELoss:
+         self.o2m_copy = self.o2m
+         # final gain
+         self.final_o2m = 0.1
++        # dual-head consistency distillation: one-to-many teacher → one-to-one student
++        self.dhcd_w = getattr(self.one2one.hyp, "dhcd_w", 0.0)
+ 
+     def __call__(self, preds: Any, batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+         """Calculate the sum of the loss for box, cls and dfl multiplied by batch size."""
+@@ -1324,7 +1326,29 @@ class E2ELoss:
+         one2many, one2one = preds["one2many"], preds["one2one"]
+         loss_one2many = self.one2many.loss(one2many, batch)
+         loss_one2one = self.one2one.loss(one2one, batch)
+-        return loss_one2many[0] * self.o2m + loss_one2one[0] * self.o2o, loss_one2one[1]
++        total = loss_one2many[0] * self.o2m + loss_one2one[0] * self.o2o
++        items = loss_one2one[1]
++        if self.dhcd_w:
++            distill = self.distill(one2many, one2one)
++            total = total + F.pad(distill.reshape(1) * self.dhcd_w, (1, 1))  # added to the cls slot of (box, cls, dfl)
++            items = {**items, "dhcd_loss": distill.detach()}
++        return total, items
++
++    def distill(self, one2many: dict[str, torch.Tensor], one2one: dict[str, torch.Tensor]) -> torch.Tensor:
++        """Match the one-to-one head's class posteriors to the one-to-many head's on the anchors the teacher fires on.
++
++        The NMS-free head is supervised by a single positive per object, so its scores stay under-confident and small
++        objects are dropped at deployment thresholds. The one-to-many head aggregates many positives per object, so its
++        posterior is a lower-variance target for the same anchors. The teacher is read under no_grad, so only the
++        student receives gradient and inference is unchanged.
++        """
++        student = one2one["scores"].permute(0, 2, 1)  # (b, a, nc)
++        with torch.no_grad():
++            teacher = one2many["scores"].detach().permute(0, 2, 1).sigmoid()
++            mask = teacher.amax(-1) > 0.1  # anchors the teacher believes carry an object
++        if not mask.any():
++            return student.sum() * 0
++        return F.binary_cross_entropy_with_logits(student[mask], teacher[mask])
+ 
+     def update(self) -> None:
+         """Update the weights for one-to-many and one-to-one losses based on the decay schedule."""
+-- 
+2.43.0
+

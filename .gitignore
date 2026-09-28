@@ -1,0 +1,24 @@
+# 环境
+.venv/
+__pycache__/
+*.py[cod]
+.config/
+.cache/
+.pip-cache/
+workdir/
+
+# 数据（体积大，用 scripts/prepare_visdrone.sh 自行准备）
+datasets/
+*.zip
+
+# 训练产物（只提交 results/ 里的 results.csv 和图表）
+runs/
+tb_server.log
+*.log
+!results/oracle_logs/*.log
+
+# 权重
+*.pt
+*.onnx
+*.engine
+*.torchscript

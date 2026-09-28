@@ -1,0 +1,119 @@
+From 4f5fff008fc4d02469bbda547e88897d9c88883d Mon Sep 17 00:00:00 2001
+From: agent <agent@local>
+Date: Sat, 26 Sep 2026 11:46:15 +0800
+Subject: [PATCH 2/2] Add scale-aware weighting for the CIoU term (sar_iou_w)
+
+The DFL-free box loss has two scale-agnostic parts: the image-normalized L1
+regression term and the CIoU term. sar_w already reweights the L1 term; the
+localization signal that actually drives IoU also lives in the CIoU term, so
+expose the same (sar_s0 / size) ** strength weighting for it as sar_iou_w,
+renormalized to mean 1. Both strengths default to 0.0, which reproduces the
+original loss exactly, and the two terms weight independently.
+---
+ ultralytics/cfg/__init__.py  |  1 +
+ ultralytics/cfg/default.yaml |  1 +
+ ultralytics/utils/loss.py    | 34 ++++++++++++++++++++++++----------
+ 3 files changed, 26 insertions(+), 10 deletions(-)
+
+diff --git a/ultralytics/cfg/__init__.py b/ultralytics/cfg/__init__.py
+index f89271844..cafa9f39e 100644
+--- a/ultralytics/cfg/__init__.py
++++ b/ultralytics/cfg/__init__.py
+@@ -208,6 +208,7 @@ CFG_FLOAT_KEYS = frozenset(
+         "sar_w",
+         "sar_s0",
+         "sar_cap",
++        "sar_iou_w",
+         "pose",
+         "kobj",
+         "rle",
+diff --git a/ultralytics/cfg/default.yaml b/ultralytics/cfg/default.yaml
+index 017fcdf20..4ad75828c 100644
+--- a/ultralytics/cfg/default.yaml
++++ b/ultralytics/cfg/default.yaml
+@@ -108,6 +108,7 @@ dfl: 1.5 # (float) box distance loss gain (DFL when reg_max > 1, L1 on DFL-free
+ sar_w: 0.0 # (float) scale-aware regression strength for the DFL-free L1 term (0.0=off, 1.0=weight proportional to sar_s0/size)
+ sar_s0: 16.0 # (float) reference object size in pixels for scale-aware regression, always >= 1
+ sar_cap: 4.0 # (float) maximum up-weighting factor for small objects in scale-aware regression, always >= 1
++sar_iou_w: 0.0 # (float) scale-aware strength for the CIoU term (0.0=off, 1.0=weight proportional to sar_s0/size)
+ pose: 12.0 # (float) pose loss gain (pose tasks)
+ kobj: 1.0 # (float) keypoint objectness loss gain (pose tasks)
+ rle: 1.0 # (float) rle loss gain (pose tasks)
+diff --git a/ultralytics/utils/loss.py b/ultralytics/utils/loss.py
+index 963a274d8..3bbdbd97e 100644
+--- a/ultralytics/utils/loss.py
++++ b/ultralytics/utils/loss.py
+@@ -111,23 +111,32 @@ class DFLoss(nn.Module):
+ class BboxLoss(nn.Module):
+     """Criterion class for computing training losses for bounding boxes."""
+ 
+-    def __init__(self, reg_max: int = 16, sar_w: float = 0.0, sar_s0: float = 16.0, sar_cap: float = 4.0):
+-        """Initialize the BboxLoss module with regularization maximum, DFL settings and scale-aware regression gains."""
++    def __init__(
++        self,
++        reg_max: int = 16,
++        sar_w: float = 0.0,
++        sar_s0: float = 16.0,
++        sar_cap: float = 4.0,
++        sar_iou_w: float = 0.0,
++    ):
++        """Initialize the BboxLoss module with regularization maximum, DFL settings and scale-aware gains."""
+         super().__init__()
+         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
+-        self.sar_w = sar_w  # scale-aware regression strength (0.0 disables, keeping the original L1)
++        self.sar_w = sar_w  # scale-aware strength for the L1 regression term (0.0 keeps the original L1)
++        self.sar_iou_w = sar_iou_w  # scale-aware strength for the CIoU term (0.0 keeps the original weighting)
+         self.sar_s0 = sar_s0  # reference object size in pixels
+         self.sar_cap = sar_cap  # maximum up-weighting factor for small objects
+ 
+-    def scale_weight(self, target_bboxes: torch.Tensor) -> torch.Tensor:
+-        """Return per-target regression weights that grow as objects shrink below sar_s0.
++    def scale_weight(self, target_bboxes: torch.Tensor, strength: float) -> torch.Tensor:
++        """Return per-target weights that grow as objects shrink below sar_s0.
+ 
+-        Weights are (sar_s0 / size) ** sar_w capped at sar_cap and renormalized to mean 1, so sar_w=0 or an all-one
+-        weight vector leaves the original loss scale unchanged while only the distribution across scales changes.
++        Weights are (sar_s0 / size) ** strength capped at sar_cap and renormalized to mean 1, so strength=0 (or an
++        all-one weight vector) leaves the original loss scale unchanged while only the distribution across scales
++        changes.
+         """
+         wh = (target_bboxes[:, 2:] - target_bboxes[:, :2]).clamp(min=0)
+         size = (wh[:, 0] * wh[:, 1]).sqrt().clamp(min=1.0)
+-        weight = (self.sar_s0 / size).clamp(max=self.sar_cap).pow(self.sar_w)
++        weight = (self.sar_s0 / size).clamp(max=self.sar_cap).pow(strength)
+         return weight / weight.mean().clamp(min=1e-6)
+ 
+     def forward(
+@@ -146,7 +155,10 @@ class BboxLoss(nn.Module):
+         fg_mask = fg_mask.nonzero(as_tuple=True)  # index once; long-index gathers and their backward do not sync
+         weight = target_scores[fg_mask].sum(-1, keepdim=True)
+         iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
+-        loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
++        iou_weight = weight
++        if self.sar_iou_w:
++            iou_weight = weight * self.scale_weight(target_bboxes[fg_mask], self.sar_iou_w)[:, None]
++        loss_iou = ((1.0 - iou) * iou_weight).sum() / target_scores_sum
+ 
+         # DFL loss
+         if self.dfl_loss:
+@@ -162,7 +174,8 @@ class BboxLoss(nn.Module):
+             pred_dist = pred_dist * stride
+             pred_dist[..., 0::2] /= imgsz[1]
+             pred_dist[..., 1::2] /= imgsz[0]
+-            weight = weight if self.sar_w == 0 else weight * self.scale_weight(target_bboxes[fg_mask])[:, None]
++            if self.sar_w:
++                weight = weight * self.scale_weight(target_bboxes[fg_mask], self.sar_w)[:, None]
+             loss_dfl = (
+                 F.l1_loss(pred_dist[fg_mask], target_ltrb[fg_mask], reduction="none").mean(-1, keepdim=True) * weight
+             )
+@@ -390,6 +403,7 @@ class v8DetectionLoss:
+             sar_w=getattr(h, "sar_w", 0.0),
+             sar_s0=getattr(h, "sar_s0", 16.0),
+             sar_cap=getattr(h, "sar_cap", 4.0),
++            sar_iou_w=getattr(h, "sar_iou_w", 0.0),
+         ).to(device)
+         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
+ 
+-- 
+2.43.0
+

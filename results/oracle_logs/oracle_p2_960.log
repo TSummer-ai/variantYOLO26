@@ -1,0 +1,64 @@
+  predict 0/548
+  predict 100/548
+  predict 200/548
+  predict 300/548
+  predict 400/548
+  predict 500/548
+GT=38759  pred=156922（conf<=0.001, head=o2m）
+real（真实）                   AP50-95=0.2474  AP50=0.4135
+loc-oracle（定位完美）           AP50-95=0.4125  AP50=0.4131
+cls-oracle（分类完美）           AP50-95=0.3604  AP50=0.6426
+fn-oracle（不漏检）             AP50-95=0.7035  AP50=0.8829
+fp-oracle（无误检）             AP50-95=0.3157  AP50=0.5871
+all-oracle（全完美，自检）         AP50-95=0.9970  AP50=0.9970
+
+conf=0.001 下的召回: 0.743
+
+漏检的尺寸分布（原图像素 sqrt(area)）:
+        尺寸      GT数      漏检数      漏检率      占全部漏检
+       0-8     2424     1423    0.587     14.3%
+      8-16     9545     3623    0.380     36.4%
+     16-32    14608     3463    0.237     34.8%
+     32-64     9004     1184    0.131     11.9%
+      >=64     3178      272    0.086      2.7%
+
+漏检的类别分布 TOP:
+  pedestrian         2701  (27.1% of 漏检)
+  people             1961  (19.7% of 漏检)
+  car                1170  (11.7% of 漏检)
+  motor              1074  (10.8% of 漏检)
+  van                1003  (10.1% of 漏检)
+  bicycle             766  (7.7% of 漏检)
+saved /home/wang/DeepSeek/YOLO/runs/visdrone/oracle_p2_960/oracle_o2m.json
+  predict 0/548
+  predict 100/548
+  predict 200/548
+  predict 300/548
+  predict 400/548
+  predict 500/548
+GT=38759  pred=159895（conf<=0.001, head=e2e）
+real（真实）                   AP50-95=0.2505  AP50=0.4159
+loc-oracle（定位完美）           AP50-95=0.4143  AP50=0.4151
+cls-oracle（分类完美）           AP50-95=0.3429  AP50=0.5991
+fn-oracle（不漏检）             AP50-95=0.6504  AP50=0.8302
+fp-oracle（无误检）             AP50-95=0.3469  AP50=0.6485
+all-oracle（全完美，自检）         AP50-95=0.9970  AP50=0.9970
+
+conf=0.001 下的召回: 0.764
+
+漏检的尺寸分布（原图像素 sqrt(area)）:
+        尺寸      GT数      漏检数      漏检率      占全部漏检
+       0-8     2424     1267    0.523     13.8%
+      8-16     9545     3268    0.342     35.7%
+     16-32    14608     3410    0.233     37.2%
+     32-64     9004     1030    0.114     11.3%
+      >=64     3178      180    0.057      2.0%
+
+漏检的类别分布 TOP:
+  pedestrian         2623  (28.7% of 漏检)
+  people             1765  (19.3% of 漏检)
+  car                1238  (13.5% of 漏检)
+  motor              1154  (12.6% of 漏检)
+  bicycle             743  (8.1% of 漏检)
+  van                 539  (5.9% of 漏检)
+saved /home/wang/DeepSeek/YOLO/runs/visdrone/oracle_p2_960/oracle_e2e.json

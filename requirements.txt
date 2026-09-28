@@ -1,0 +1,22 @@
+# 环境：Python 3.12.3 / CUDA 12.6 / 单卡 RTX 4060 Laptop (8GB)
+# 安装： pip install -r requirements.txt
+# 注意：torch 请按自己的 CUDA 版本从 https://pytorch.org 选择对应 index-url
+
+ultralytics==8.4.160
+torch==2.14.0
+torchvision==0.29.0
+numpy==2.5.3
+opencv-python>=4.9
+pillow==12.3.0
+PyYAML==6.0.3
+matplotlib==3.11.2
+pandas>=2.0
+scipy>=1.11
+tqdm>=4.66
+
+# 评测（COCO 协议，与 ultralytics 内部指标口径不同，见 README「指标口径」）
+faster-coco-eval==1.8.0
+pycocotools>=2.0.7
+
+# 训练曲线可视化（可选）
+tensorboard==2.21.0
