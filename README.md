@@ -18,6 +18,9 @@ VisDrone2019-DET val（548 图 / 38,759 GT），全部 100 epoch 同设定训练
 
 延迟在 RTX 4060 Laptop / FP32 / batch 1 下实测（100 次平均）：**8.96 ms ≈ 112 FPS**。
 
+对应的权重文件已随仓库提供（`weights/`），可直接推理或复现评测：
+`yolo26n-visdrone-base-640.pt` / `yolo26n-visdrone-p2-640.pt` / **`yolo26n-visdrone-p2-960.pt`**。
+
 ## 关键发现：增益来自特征分辨率，且随目标变小单调增强
 
 漏检率（conf=0.001）：
@@ -85,6 +88,27 @@ VisDrone2019-DET val（548 图 / 38,759 GT），全部 100 epoch 同设定训练
 
 前两个方向的代码以 patch 形式保留在 `experiments/negative-results/patches/`，供复现。
 
+## 快速开始（不训练，直接用现成权重）
+
+```bash
+git clone <仓库地址> && cd visdrone-yolo26
+pip install -r requirements.txt
+source activate_yolo.sh
+
+# 推理（注意分辨率必须与训练一致：960 模型用 imgsz=960）
+yolo predict model=weights/yolo26n-visdrone-p2-960.pt source=your.jpg imgsz=960
+
+# 精度/延迟实测（不需要数据集）
+python scripts/bench_models.py --weights weights/yolo26n-visdrone-p2-960.pt --imgsz 960
+```
+
+复现表格指标需要先准备数据集（见下节），然后：
+
+```bash
+yolo val model=weights/yolo26n-visdrone-p2-960.pt data=configs/visdrone.yaml imgsz=960 max_det=1000
+# 期望：mAP50 0.455 / mAP50-95 0.269
+```
+
 ## 环境
 
 - Python 3.12.3、CUDA 12.6、单卡 **RTX 4060 Laptop (8GB)**
@@ -130,6 +154,10 @@ python scripts/visualize_models.py
 ```
 ├── activate_yolo.sh              # 环境自举（缓存目录、PYTHONPATH）
 ├── requirements.txt
+├── weights/                      # ★ 三个主模型权重（约 16 MB，含说明见其 README）
+│   ├── yolo26n-visdrone-base-640.pt
+│   ├── yolo26n-visdrone-p2-640.pt
+│   └── yolo26n-visdrone-p2-960.pt   # 最终模型
 ├── configs/
 │   ├── visdrone.yaml             # 数据集配置模板
 │   └── models/                   # 自建 yaml（轻量 P2 变体，未训练）
@@ -149,7 +177,8 @@ python scripts/visualize_models.py
 └── experiments/negative-results/ # 负结果的 patch 与说明
 ```
 
-**权重不在仓库里**：复现训练即可得到（见上方命令）；或从 Releases 下载最终模型。
+**权重已随仓库提供**（`weights/`，共约 16 MB）—— 克隆下来就能推理，不必先训练。
+数据集与训练产物（`runs/`）不入库，按上方「数据准备」自行生成。
 
 ## 指标口径（重要）
 
