@@ -20,3 +20,9 @@ pycocotools>=2.0.7
 
 # 训练曲线可视化（可选）
 tensorboard==2.21.0
+
+# --- 可选：TensorRT 加速（见 docs/TENSORRT.md；注意必须用 -cu12 后缀）---
+# tensorrt-cu12
+# onnx
+# onnxruntime
+# onnxconverter-common

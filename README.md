@@ -180,6 +180,21 @@ python scripts/visualize_models.py
 **权重已随仓库提供**（`weights/`，共约 16 MB）—— 克隆下来就能推理，不必先训练。
 数据集与训练产物（`runs/`）不入库，按上方「数据准备」自行生成。
 
+## 推理速度
+
+单图延迟（RTX 4060 Laptop，imgsz=960，batch=1，取 60 次最小值）：
+
+| 配置 | 网络前向 | 端到端 | FPS | mAP50-95 |
+|---|---|---|---|---|
+| PyTorch FP32 | ~9.6 ms | 8.67 ms | 115 | 0.263 |
+| PyTorch FP16 | 8.33 ms | 8.03 ms | 125 | 0.261 |
+| **TensorRT FP16** | **2.15 ms（3.87×）** | **5.39 ms（1.61×）** | **186** | **0.262** |
+
+TensorRT 精度零损失；端到端只快 1.61× 是因为**前/后处理（约 3.2ms）成了新瓶颈**。
+加速步骤与两个必踩的坑（`tensorrt` 默认装 cu13、TRT 11 强拉 nvidia-modelopt）见
+[`docs/TENSORRT.md`](docs/TENSORRT.md)。
+另：批量推理吞吐更高（FP16 @960 batch4 达 189 FPS；@640 batch4 达 409 FPS）。
+
 ## 指标口径（重要）
 
 本仓库同时用到两套指标，**绝对数值不可直接混用**：
