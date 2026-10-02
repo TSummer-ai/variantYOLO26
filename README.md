@@ -18,6 +18,24 @@ VisDrone2019-DET val（548 图 / 38,759 GT），全部 100 epoch 同设定训练
 
 延迟在 RTX 4060 Laptop / FP32 / batch 1 下实测（100 次平均）：**8.96 ms ≈ 112 FPS**。
 
+### 推理期方法：尺寸感知切片融合（**+2.38 AP50-95，零训练**）
+
+在**已训练**的 960 模型上追加（COCO 协议，val 全量 548 图）：
+
+| 管线 | 前向次数 | AP50-95 | AP50 | 延迟 / 吞吐 |
+|---|---|---|---|---|
+| 整图 960（基线） | 1× | 0.2512 | 0.4221 | 7.2 ms / 139 FPS |
+| **+ 尺寸感知切片融合（3×1）** | 4× | **0.2750（+2.38）** | **0.4684（+4.63）** | ~28 ms / ~36 FPS |
+
+三条量化结论（都有消融支撑）：
+
+1. **切片对大小目标作用相反**：小目标召回大涨（8–16px 档 **+8.4 点**），但会切断大目标（≥64px 档 **−4.8 点**）
+2. **必须按尺寸选择信息源**：仅切片 −1.9 → 普通 NMS 合并 +0.3 → **尺寸感知融合 +2.0**（大框只信整图）
+3. **该沿宽度切列，不该切方形网格**：letterbox 缩放 `min(960/W,960/H)` 受**宽度**限制，
+   3 列（放大 1.78×）比 2×2（1.67×）**既更准又更省**；4 列后高度成为限制、不再提升
+
+详见 [`results/SLICING.md`](results/SLICING.md)。**训练成本为 0**，可套用在任何已训练检测器上。
+
 对应的权重文件已随仓库提供（`weights/`），可直接推理或复现评测：
 `yolo26n-visdrone-base-640.pt` / `yolo26n-visdrone-p2-640.pt` / **`yolo26n-visdrone-p2-960.pt`**。
 
@@ -100,6 +118,10 @@ yolo predict model=weights/yolo26n-visdrone-p2-960.pt source=your.jpg imgsz=960
 
 # 精度/延迟实测（不需要数据集）
 python scripts/bench_models.py --weights weights/yolo26n-visdrone-p2-960.pt --imgsz 960
+
+# 零训练的精度提升：尺寸感知切片融合（需要数据集做评测）
+python scripts/probe_slicing.py --weights weights/yolo26n-visdrone-p2-960.pt \
+       --imgsz 960 --grid 3,1 --overlap 0.3 --pipelines "full,full+adaptive" --big-px 48 --merge-iou 0.6
 ```
 
 复现表格指标需要先准备数据集（见下节），然后：
@@ -167,11 +189,15 @@ python scripts/visualize_models.py
 │   ├── analyze_visdrone.py       # ★ 分尺寸/分类别召回
 │   ├── bench_models.py           # ★ 延迟与 FLOPs 实测
 │   ├── probe_budget.py           # 检测预算分配研究
+│   ├── probe_slicing.py          # ★ 尺寸感知切片融合（评测）
+│   ├── tune_slicing.py           #   切片布局/融合参数寻优
+│   ├── adaptive_slicing.py       #   自适应触发（精度-成本曲线）
 │   └── make_figures.py 等        # 出图
 ├── results/
 │   ├── results_csv/              # ★ 全部实验的 results.csv（训练原始记录）
 │   ├── figures/                  # ★ 论文用图
 │   ├── oracle*/                  # 误差分解结果
+│   ├── SLICING.md                # ★ 切片融合的方法与全部消融
 │   └── *_COMPARISON.md           # 各阶段对比表
 ├── docs/                         # 分阶段实验报告
 └── experiments/negative-results/ # 负结果的 patch 与说明
@@ -179,21 +205,6 @@ python scripts/visualize_models.py
 
 **权重已随仓库提供**（`weights/`，共约 16 MB）—— 克隆下来就能推理，不必先训练。
 数据集与训练产物（`runs/`）不入库，按上方「数据准备」自行生成。
-
-## 推理速度
-
-单图延迟（RTX 4060 Laptop，imgsz=960，batch=1，取 60 次最小值）：
-
-| 配置 | 网络前向 | 端到端 | FPS | mAP50-95 |
-|---|---|---|---|---|
-| PyTorch FP32 | ~9.6 ms | 8.67 ms | 115 | 0.263 |
-| PyTorch FP16 | 8.33 ms | 8.03 ms | 125 | 0.261 |
-| **TensorRT FP16** | **2.15 ms（3.87×）** | **5.39 ms（1.61×）** | **186** | **0.262** |
-
-TensorRT 精度零损失；端到端只快 1.61× 是因为**前/后处理（约 3.2ms）成了新瓶颈**。
-加速步骤与两个必踩的坑（`tensorrt` 默认装 cu13、TRT 11 强拉 nvidia-modelopt）见
-[`docs/TENSORRT.md`](docs/TENSORRT.md)。
-另：批量推理吞吐更高（FP16 @960 batch4 达 189 FPS；@640 batch4 达 409 FPS）。
 
 ## 指标口径（重要）
 
