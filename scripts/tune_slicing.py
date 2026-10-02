@@ -38,6 +38,12 @@ def main():
     ap.add_argument("--mergeious", default="0.5,0.6")
     a = ap.parse_args()
 
+    if not (DS / "val.txt").exists():
+        raise SystemExit(
+            f"找不到数据集标注: {DS / 'val.txt'}\n"
+            "请先按 README「数据准备」运行 scripts/prepare_visdrone.sh，"
+            "或在 configs/visdrone.yaml 里把 path 指向你的数据目录。"
+        )
     files = [l.strip() for l in open(DS / "val.txt")]
     if a.limit:
         files = files[: a.limit]
