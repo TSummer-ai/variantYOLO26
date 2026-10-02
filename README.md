@@ -36,6 +36,13 @@ VisDrone2019-DET val（548 图 / 38,759 GT），全部 100 epoch 同设定训练
 
 详见 [`results/SLICING.md`](results/SLICING.md)。**训练成本为 0**，可套用在任何已训练检测器上。
 
+> ⚠️ **新颖性声明**：切片推理 + 整图融合的**框架并非本工作首创** —— 先行工作包括
+> [SAHI](https://obss.github.io/sahi/guides/sliced-inference/)（2022，固定尺寸切片 + 融合）与
+> [ASAHI](https://ar5iv.labs.arxiv.org/html/2604.19233)（2026，**双流 + 自适应切片 + Cluster-DIoU-NMS 合并**，
+> VisDrone-val mAP50 56.8%，比 SAHI +1.7）。
+> 本工作只主张窄范围差异：**按预测框尺寸门控信息源** + **列切分放大倍数的量化分析**。
+> 详见 `results/SLICING.md` 的「相关工作与新颖性声明」一节。
+
 对应的权重文件已随仓库提供（`weights/`），可直接推理或复现评测：
 `yolo26n-visdrone-base-640.pt` / `yolo26n-visdrone-p2-640.pt` / **`yolo26n-visdrone-p2-960.pt`**。
 
