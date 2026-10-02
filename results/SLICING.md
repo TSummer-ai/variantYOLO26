@@ -3,6 +3,25 @@
 脚本：`probe_slicing.py`（评测）、`tune_slicing.py`（寻优）、`adaptive_slicing.py`（自适应）
 模型：现成的 `p2_960`（**不重新训练**）｜ 评测：COCO 协议，VisDrone val 全量 548 图
 
+
+> ### ⚠️ 效率数字更正（2026-10-02）：此前报的是**未 fuse** 的训练图口径
+>
+> `get_flops()` 与在 `YOLO(w).model` 上的延迟测量都作用于**未 fuse** 的模型；而未 fuse 的 eval 模型会
+> **同时计算 one2many 与 one2one 两个头再丢掉一个**（`head.py:183-190`）。`Detect.fuse()`（`head.py:277`，
+> *"Remove the unused detection branch for inference"*）才会删掉无用分支。
+>
+> 正确（部署）口径：
+>
+> | 模型 | GFLOPs（fuse 后） | 前向延迟（fuse 后） | 此前误报 |
+> |---|---|---|---|
+> | baseline@640 | **5.32** | **2.86 ms** | 5.9 / 4.6 ms |
+> | P2@640 | **6.57** | **3.47 ms** | 7.7 / 5.9 ms |
+> | P2@960 | **15.13** | **6.44 ms** | 17.6 / 9.0 ms |
+>
+> **P2 的实际代价是 +23.5% GFLOPs / +21.4% 延迟**（原报 +63% / +29%）；960 是 +184% / +125%。
+> 另外要记住一个**架构事实**：`head.py:185` 对 o2o 分支做了 `.detach()`，**它的梯度不进 backbone/neck** ——
+> 所以两个头在训练图里的开销才是 2×，推理时只有 1×。
+
 ## 一、最终结果（全量 val 548 图，COCO 协议）
 
 | 配置 | 切片数 | 前向次数 | AP50-95 | AP50 | Δ AP50-95 | Δ AP50 |
