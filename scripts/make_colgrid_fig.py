@@ -78,19 +78,27 @@ ax.set_ylim(0.85, 2.0); ax.set_ylabel("effective magnification vs full image")
 ax.set_title("(b) 2x2 = 2x1 (both width-limited); 3x1 = 4x1 = 1.78x", fontsize=10.5)
 ax.grid(axis="y", alpha=0.3)
 
-# ================= (c) ΔAP vs 布局 =================
+# ================= (c) 绝对 AP50-95（两条基线，协议可见）=================
 ax = axes[2]
-d = [(l, f, ap - (BASE_FULL if p == "full" else BASE_SUB), p) for l, _, _, f, ap, p in AP]
-xs = np.arange(len(d)); vals = [x[2] * 100 for x in d]
-cols = ["#9aa5b1" if x[0] == "full image" else ("#2e7d32" if x[0] == "3x1" else "#8fa8c8") for x in d]
-b = ax.bar(xs, vals, color=cols, hatch=["", "//", "", "", "//"], edgecolor="k", linewidth=0.6)
-ax.set_xticks(xs); ax.set_xticklabels([f"{x[0]}\n{x[1]} fwd" for x in d], fontsize=9)
-for i, v in enumerate(vals):
-    ax.text(i, v + 0.05, f"{v:+.2f}", ha="center", fontsize=9, fontweight="bold")
-ax.set_ylim(0, 2.75)
-ax.set_ylabel(r"$\Delta$ mAP50-95 vs its own baseline (points)")
-ax.set_title("(c) 3x1: +2.38 @4 fwd  >  2x2: +1.91 @5 fwd  >  4x1: +1.59\n"
-             "(hatched = 120-image subset; others = full val)", fontsize=10.5)
+xs = np.arange(len(AP)); vals_abs = [x[4] for x in AP]
+cols = ["#9aa5b1" if x[0] == "full image" else ("#2e7d32" if x[0] == "3x1" else "#8fa8c8") for x in AP]
+hatches = ["", "//", "", "", "//"]          # 斜纹 = 120 图子集
+b = ax.bar(xs, vals_abs, color=cols, hatch=hatches, edgecolor="k", linewidth=0.6)
+ax.set_xticks(xs); ax.set_xticklabels([f"{x[0]}\n{x[3]} fwd" for x in AP], fontsize=9)
+for i, (x, v) in enumerate(zip(AP, vals_abs)):
+    delta = (v - (BASE_FULL if x[5] == "full" else BASE_SUB)) * 100
+    ax.text(i, v + 0.0012, f"{v:.4f}", ha="center", fontsize=9, fontweight="bold")
+    ax.text(i, v + 0.0002, f"({delta:+.2f})", ha="center", fontsize=8, color="#444")
+ax.axhline(BASE_FULL, ls="--", c="#1f4e79", lw=1.2)
+ax.axhline(BASE_SUB, ls=":", c="#a33", lw=1.4)
+ax.text(0.985, BASE_FULL + 0.0005, f"baseline full val {BASE_FULL:.4f}", fontsize=8,
+        color="#1f4e79", ha="right", transform=ax.get_yaxis_transform())
+ax.text(0.985, BASE_SUB + 0.0005, f"baseline 120-img subset {BASE_SUB:.4f}", fontsize=8,
+        color="#a33", ha="right", transform=ax.get_yaxis_transform())
+ax.set_ylim(0.244, 0.2815)
+ax.set_ylabel("mAP50-95 (absolute)")
+ax.set_title("(c) Absolute AP: 3x1 = 0.2750 / 2x2 = 0.2703 / 4x1 = 0.2631\n"
+             "(hatched = 120-image subset; use the matching dashed/dotted baseline)", fontsize=10.5)
 ax.grid(axis="y", alpha=0.3)
 
 # ================= (d) 放大倍数 vs ΔAP =================
@@ -98,16 +106,16 @@ ax = axes[3]
 for l, nx, ny, f, ap, p in AP:
     if l == "full image":
         continue
-    x = MAG_OF[nx]; y = (ap - (BASE_FULL if p == "full" else BASE_SUB)) * 100
+    x = MAG_OF[nx]; y = ap
     ax.scatter(x, y, s=110 + f * 60,
                color="#2e7d32" if l == "3x1" else ("#d9534f" if l == "4x1" else "#8fa8c8"),
                alpha=0.85, edgecolors="k", zorder=3)
     ax.annotate(f"{l} ({f} fwd)", (x, y), textcoords="offset points", xytext=(8, 7), fontsize=9)
 ax.axvline(1.778, ls=":", c="k", lw=1.2)
-ax.text(1.762, 2.62, "magnification ceiling", rotation=90, fontsize=8.5, va="top", ha="right")
-ax.set_xlim(1.60, 1.90); ax.set_ylim(1.2, 2.8)
+ax.text(1.764, 0.2775, "magnification ceiling", rotation=90, fontsize=8.5, va="top", ha="right")
+ax.set_xlim(1.60, 1.90); ax.set_ylim(0.2585, 0.2805)
 ax.set_xlabel("effective magnification")
-ax.set_ylabel(r"$\Delta$ mAP50-95 (points)")
+ax.set_ylabel("mAP50-95 (absolute)")
 ax.set_title("(d) Past the ceiling: 3x1 and 4x1 share 1.78x, but 4x1 is worse\n"
              "-> extra columns add compute/duplicates, not magnification", fontsize=10.5)
 ax.grid(alpha=0.3)
@@ -115,6 +123,6 @@ ax.grid(alpha=0.3)
 fig.suptitle("Why column-splitting beats square grids on wide (1360x765) VisDrone images "
              "(imgsz=960, overlap=0.2, single row)", fontsize=12)
 fig.tight_layout(rect=[0, 0, 1, 0.955])
-out = FIG / "fig_column_vs_grid.png"
+out = FIG / "fig_column_vs_grid_abs.png"
 fig.savefig(out, dpi=170); plt.close(fig)
 print(f"已生成 {out}")
