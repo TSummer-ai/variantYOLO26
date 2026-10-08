@@ -8,10 +8,29 @@
 | `yolo26n-visdrone-base-640.pt` | P3–P5（官方 `yolo26.yaml`） | 640 | 0.328 | 0.182 | 基线 |
 | `yolo26n-visdrone-p2-640.pt` | P2–P5（官方 `yolo26-p2.yaml`） | 640 | 0.349 | 0.198 | +1.6 AP |
 | **`yolo26n-visdrone-p2-960.pt`** | P2–P5 | 960 | **0.440** | **0.263** | **最终模型** |
+| `yolo26n-visdrone-p2-960-retrained.pt` | P2–P5 | 960 | **0.457** | **0.269** | 第三方独立复现训练（见下） |
 
 > 指标为 ultralytics `yolo val` 内部口径、`max_det=300`。开 `max_det=1000` 后最终模型为
 > **mAP50 0.455 / mAP50-95 0.269**。COCO 协议（faster-coco-eval）下同一模型为 0.413 / 0.247。
 > 两套口径在同一数据集上相差约 0.9 AP，引用时请注明。
+
+### 独立复现权重（`yolo26n-visdrone-p2-960-retrained.pt`）
+
+由第三方在**完全不同的环境**（Windows / 自装 CUDA 版 torch / ultralytics 8.4.173）下，
+**从 COCO 预训练 `yolo26n.pt` 出发重新训练 100 epoch** 得到（seed=0，imgsz=960，batch=4，
+配置同 `scripts/run_p2_960.sh`）。它与本仓库发布权重**无关**，仅用于验证训练配方可复现。
+
+| 指标 | 复现权重 | 本仓库发布权重 | 差值 |
+|---|---|---|---|
+| `yolo val` max_det=1000 mAP50-95 | **0.2692** | 0.269 | +0.0002 |
+| `yolo val` max_det=300 mAP50-95 | 0.2624 | 0.263 | −0.0006 |
+| COCO 协议 AP50-95 | **0.2497** | 0.2474 | +0.0023 |
+| + 尺寸门控切片融合 | **0.2764** | 0.2750 | +0.0014 |
+| + MV-Fuse 一致性重打分 | **0.2809** | 0.2788 | +0.0021 |
+
+逐轮训练曲线、oracle 四象限、推理期全部变体见
+[`docs/RESULTS_TRAIN_REPRO.md`](../docs/RESULTS_TRAIN_REPRO.md) 与 [`results/train_repro/`](../results/train_repro/)。
+**注意：差异量级（±0.002~0.003）在单种子噪声内，应视为等价而非改进。**
 
 ## 用法
 

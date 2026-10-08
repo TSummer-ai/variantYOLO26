@@ -326,6 +326,23 @@ python scripts/visualize_models.py
    参数的 `predict` 会继承"关闭 NMS"状态（实测框数 1665 → 3000 → 3000）。
    任何混合使用两种调用的评测都会失真——本仓库新增脚本因此全部**显式**传 `nms=True/False`。
 
+### 训练侧也做了独立复现（2026-10-08）
+
+不只是"用发布权重跑评测"——第三方在**不同环境**下从 COCO 预训练 `yolo26n.pt` 出发，
+按 `scripts/run_p2_960.sh` 的配置（P2 结构 / imgsz 960 / batch 4 / 100 epoch / seed 0）
+**完整重训了一遍**，权重见 `weights/yolo26n-visdrone-p2-960-retrained.pt`：
+
+| 指标 | 复现权重 | 本仓库发布权重 | 差值 |
+|---|---|---|---|
+| `yolo val` max_det=1000 mAP50-95 | **0.2692** | 0.269 | +0.0002 |
+| COCO 协议 AP50-95 | **0.2497** | 0.2474 | +0.0023 |
+| + 尺寸门控切片融合 | **0.2764** | 0.2750 | +0.0014 |
+| + MV-Fuse 一致性重打分 | **0.2809** | 0.2788 | +0.0021 |
+
+逐轮曲线 11 个对照点全部在 ±0.0034 以内。详见
+[`docs/RESULTS_TRAIN_REPRO.md`](docs/RESULTS_TRAIN_REPRO.md) 与 [`results/train_repro/`](results/train_repro/)。
+**差异在单种子噪声内，应视为等价而非改进。**
+
 ## 待补实验
 
 - [ ] `baseline@960`（base 结构 + 960 训练）：补齐 2×2 消融，把"960 训练"与"P2 结构"的贡献分离
