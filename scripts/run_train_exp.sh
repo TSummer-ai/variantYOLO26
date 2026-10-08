@@ -2,7 +2,7 @@
 # 通用消融训练脚本（VisDrone）
 # 用法: bash run_train_exp.sh <实验名> [额外的 yolo 参数 ...]
 #   env 可覆盖: MODEL / EPOCHS / IMGSZ / BATCH / WORKERS / YOLO_SRC(代码目录, 默认主 checkout)
-# 例:  MODEL=weights/yolo26n.pt EPOCHS=100 bash run_train_exp.sh b_sar --sar_w 1.0
+# 例:  MODEL=weights/yolo26n.pt EPOCHS=100 bash run_train_exp.sh p2_n_640
 # --- 路径自举：可用 YOLO_ROOT 覆盖，默认取仓库根目录 ---
 YOLO_ROOT="${YOLO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 export YOLO_ROOT

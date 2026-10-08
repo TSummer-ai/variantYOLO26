@@ -37,11 +37,14 @@ OUT = ROOT / "results/figures"
 OUT.mkdir(parents=True, exist_ok=True)
 BUCKETS = ["0-8", "8-16", "16-32", "32-64", ">=64"]
 
-# 实测的工作点（bench_models.py + val 日志）
+# 实测的工作点（bench + val 日志）
+# ⚠️ 2026-10-02 口径更正：GFLOPs / 延迟一律用 **fuse 后**（部署口径）的值。
+#    旧版填的是未 fuse 的值（5.9 / 7.7 / 17.6 GFLOPs，4.57 / 5.88 / 8.96 ms），系统性偏高。
+#    更完整的一套图（含 baseline@960 推理、P2-pruned 两个点）见 scripts/make_figures_v2.py。
 POINTS = {
-    "baseline@640": dict(gflops=5.9, lat=4.57, e2e=6.26, ap=0.1820, ap50=0.3280, color="#888888"),
-    "P2@640":       dict(gflops=7.7, lat=5.88, e2e=7.01, ap=0.1980, ap50=0.3490, color="#1f77b4"),
-    "P2@960":       dict(gflops=17.6, lat=8.96, e2e=8.73, ap=0.2630, ap50=0.4400, color="#d62728"),
+    "baseline@640": dict(gflops=5.32, lat=2.86, ap=0.1820, ap50=0.3280, color="#888888"),
+    "P2@640":       dict(gflops=6.57, lat=3.47, ap=0.1980, ap50=0.3490, color="#1f77b4"),
+    "P2@960":       dict(gflops=15.13, lat=6.44, ap=0.2630, ap50=0.4400, color="#d62728"),
 }
 ORACLE_LOGS = {"baseline@640": "results/oracle_logs/oracle.log",
                "P2@640": "results/oracle_logs/oracle_p2.log",
@@ -121,11 +124,11 @@ def fig_pareto(ax):
     xs = [p["lat"] for p in POINTS.values()]
     ys = [p["ap"] for p in POINTS.values()]
     ax.plot(xs, ys, "--", color="gray", alpha=0.6, zorder=1)
-    ax.set_xlabel("forward latency (ms/img, RTX 4060 Laptop, FP32)")
+    ax.set_xlabel("forward latency (ms/img, RTX 4060 Laptop, FP32, fused)")
     ax.set_ylabel("mAP50-95 (val)")
     ax.set_title("(c) 精度-延迟帕累托")
     ax.grid(alpha=0.3)
-    ax.set_xlim(3.8, 10.0)
+    ax.set_xlim(2.3, 7.4)
 
 
 def fig_gt_size(ax):
@@ -191,4 +194,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # 统一由 make_figures_v2.py 出图，避免两处硬编码的效率数据再次分叉。
+    # （旧版本脚本里 5.9 / 7.7 / 17.6 GFLOPs 的未 fuse 口径已废弃。）
+    import runpy
+    import sys
+
+    _v2 = Path(__file__).with_name("make_figures_v2.py")
+    # 用脚本自身位置定位仓库，不依赖 YOLO_ROOT（否则会写到工作目录去）
+    _repo = Path(__file__).resolve().parent.parent
+    sys.argv = [str(_v2), "--only", "figs", "--out", str(_repo / "results/figures")]
+    runpy.run_path(str(_v2), run_name="__main__")

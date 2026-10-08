@@ -1,0 +1,129 @@
+{
+ "weights": "/home/wang/DeepSeek/YOLO/runs/visdrone/p2_960/weights/best.pt",
+ "bench_img": "0000001_02999_d_0000005.jpg",
+ "img_wh": [
+  1920,
+  1080
+ ],
+ "rows": [
+  {
+   "mode": "square",
+   "imgsz": 640,
+   "input_hw": [
+    640,
+    640
+   ],
+   "px": 0.4096,
+   "fwd_ms": 3.656,
+   "e2e_ms_conf0.001": 10.67,
+   "e2e_ms_conf0.25": 10.162
+  },
+  {
+   "mode": "square",
+   "imgsz": 960,
+   "input_hw": [
+    960,
+    960
+   ],
+   "px": 0.9216,
+   "fwd_ms": 5.727,
+   "e2e_ms_conf0.001": 12.762,
+   "e2e_ms_conf0.25": 11.984
+  },
+  {
+   "mode": "square",
+   "imgsz": 1280,
+   "input_hw": [
+    1280,
+    1280
+   ],
+   "px": 1.6384,
+   "fwd_ms": 10.214,
+   "e2e_ms_conf0.001": 19.897,
+   "e2e_ms_conf0.25": 19.147
+  },
+  {
+   "mode": "square",
+   "imgsz": 1600,
+   "input_hw": [
+    1600,
+    1600
+   ],
+   "px": 2.56,
+   "fwd_ms": 17.389,
+   "e2e_ms_conf0.001": 26.849,
+   "e2e_ms_conf0.25": 25.897
+  },
+  {
+   "mode": "square",
+   "imgsz": 1920,
+   "input_hw": [
+    1920,
+    1920
+   ],
+   "px": 3.6864,
+   "fwd_ms": 28.126,
+   "e2e_ms_conf0.001": 36.98,
+   "e2e_ms_conf0.25": 36.5
+  },
+  {
+   "mode": "rect",
+   "imgsz": 640,
+   "input_hw": [
+    360,
+    640
+   ],
+   "px": 0.2304,
+   "error": "RuntimeError: Sizes of tensors must match except in dimension 1. Expected size 24 but got size 23 for tensor number 1 in the list."
+  },
+  {
+   "mode": "rect",
+   "imgsz": 960,
+   "input_hw": [
+    540,
+    960
+   ],
+   "px": 0.5184,
+   "error": "RuntimeError: Sizes of tensors must match except in dimension 1. Expected size 136 but got size 135 for tensor number 1 in the list."
+  },
+  {
+   "mode": "rect",
+   "imgsz": 1280,
+   "input_hw": [
+    720,
+    1280
+   ],
+   "px": 0.9216,
+   "error": "RuntimeError: Sizes of tensors must match except in dimension 1. Expected size 46 but got size 45 for tensor number 1 in the list."
+  },
+  {
+   "mode": "rect",
+   "imgsz": 1600,
+   "input_hw": [
+    900,
+    1600
+   ],
+   "px": 1.44,
+   "error": "RuntimeError: Sizes of tensors must match except in dimension 1. Expected size 58 but got size 57 for tensor number 1 in the list."
+  },
+  {
+   "mode": "rect",
+   "imgsz": 1920,
+   "input_hw": [
+    1080,
+    1920
+   ],
+   "px": 2.0736,
+   "error": "RuntimeError: Sizes of tensors must match except in dimension 1. Expected size 136 but got size 135 for tensor number 1 in the list."
+  },
+  {
+   "mode": "slice3x1_gated",
+   "imgsz": 960,
+   "forwards": 4,
+   "fwd_ms": 6.813,
+   "e2e_ms_conf0.001": 64.911,
+   "e2e_ms_conf0.25": 52.902,
+   "_provenance": "由 bench_inference_strategies.py 首次运行的 stdout 日志回填；该脚本当时漏了最后一次 json.dump（已修复）；bench_batched_slicing.py 会独立重测该值"
+  }
+ ]
+}

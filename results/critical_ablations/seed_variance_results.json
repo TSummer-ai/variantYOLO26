@@ -1,0 +1,93 @@
+{
+ "n_seeds": 3,
+ "partial": false,
+ "coco_map": {
+  "values": [
+   0.174,
+   0.1735,
+   0.1717
+  ],
+  "mean": 0.1731,
+  "std": 0.0012,
+  "range": 0.0023
+ },
+ "val_md1000_map": {
+  "values": [
+   0.186,
+   0.1842,
+   0.1864
+  ],
+  "mean": 0.1855,
+  "std": 0.0012,
+  "range": 0.0022
+ },
+ "val_md300_map": {
+  "values": [
+   0.1824,
+   0.1805,
+   0.1828
+  ],
+  "mean": 0.1819,
+  "std": 0.0012,
+  "range": 0.0023
+ },
+ "per_seed": {
+  "0": {
+   "weights": "/home/wang/DeepSeek/YOLO/runs/visdrone/base_n_640/weights/best.pt",
+   "val_md1000": {
+    "map50": 0.3392,
+    "map": 0.186,
+    "precision": 0.4656,
+    "recall": 0.3469
+   },
+   "val_md300": {
+    "map50": 0.3285,
+    "map": 0.1824,
+    "precision": 0.4643,
+    "recall": 0.3476
+   },
+   "coco": {
+    "map50": 0.3079,
+    "map": 0.174
+   }
+  },
+  "1": {
+   "weights": "/home/wang/DeepSeek/YOLO/runs/visdrone/base_n_640_seed1/weights/best.pt",
+   "val_md1000": {
+    "map50": 0.3353,
+    "map": 0.1842,
+    "precision": 0.456,
+    "recall": 0.3443
+   },
+   "val_md300": {
+    "map50": 0.3251,
+    "map": 0.1805,
+    "precision": 0.456,
+    "recall": 0.3443
+   },
+   "coco": {
+    "map50": 0.3049,
+    "map": 0.1735
+   }
+  },
+  "2": {
+   "weights": "/home/wang/DeepSeek/YOLO/runs/visdrone/base_n_640_seed2/weights/best.pt",
+   "val_md1000": {
+    "map50": 0.3373,
+    "map": 0.1864,
+    "precision": 0.4623,
+    "recall": 0.3467
+   },
+   "val_md300": {
+    "map50": 0.3268,
+    "map": 0.1828,
+    "precision": 0.4623,
+    "recall": 0.3467
+   },
+   "coco": {
+    "map50": 0.3019,
+    "map": 0.1717
+   }
+  }
+ }
+}

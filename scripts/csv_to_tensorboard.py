@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """把 Ultralytics 的 results.csv 转成 TensorBoard event 文件（支持增量刷新、不重复写点）。
 
-已存在的实验（baseline / SAR 系列）本来没有装 tensorboard，所以没有 events 文件；
+已存在的实验（baseline / P2 系列）本来没有装 tensorboard，所以没有 events 文件；
 这个脚本把它们补进 TensorBoard，并且可以反复调用：用 .tb_state 记录已写入的 epoch，
 只追加新行，因此曲线不会出现重复点。
 
 用法:
     python csv_to_tensorboard.py                      # 转换 runs/visdrone 下所有实验
-    python csv_to_tensorboard.py --runs base_n_640 a_dhcd_w10
+    python csv_to_tensorboard.py --runs base_n_640 p2_n_640
 """
 
 from __future__ import annotations

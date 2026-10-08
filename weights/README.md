@@ -29,9 +29,3 @@ python scripts/bench_models.py --weights weights/yolo26n-visdrone-p2-960.pt --im
 ```
 
 ⚠️ **推理分辨率必须与训练一致**（960 模型用 `imgsz=960`）。用 640 推理 960 训练的模型会掉点。
-
-## 未包含的权重
-
-SAR / DHCD 两个方向的 8 个变体权重（共约 42 MB）未入库 —— 它们是负结果，
-用 `experiments/negative-results/patches/` 打补丁重训即可复现，对应的
-`results/results_csv/` 里有完整训练曲线。如确需权重，向维护者索取。
