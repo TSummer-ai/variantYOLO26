@@ -1,0 +1,8 @@
+{
+ "onnx_export_ok": true,
+ "engine_build_ok": true,
+ "trt_batch4_ms": 11.892858300052467,
+ "pt_fp16_b1_ms": 3.758187000009154,
+ "pt_fp16_b4_ms": 14.972907033370575,
+ "mvfuse_est_fps_trt_b4": 62.92134373315961
+}
