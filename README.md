@@ -372,6 +372,31 @@ python scripts/visualize_models.py
 
 **同数据集上两者相差约 0.9 AP。** 引用本仓库数字时请注明口径。
 
+## 结果图索引
+
+全部图位于 [`results/figures/`](results/figures/)，生成脚本见 `scripts/`。同口径可比者均标注协议。
+
+| 图 | 内容 | 生成脚本 |
+|---|---|---|
+| `fig_ladder.png` | 全栈阶梯：baseline@640 → P2 → 960 → 切片 → MV-Fuse | `make_figures_v2.py` |
+| `fig_factorial_ablation.png` | **2×2×2 因子消融**（P2 × 分辨率 × MV-Fuse） | `make_factorial_fig.py` |
+| `fig_coco_generalization.png` | **COCO val2017 跨数据集泛化**（变体 A/B） | `make_coco_fig.py` |
+| `fig_views.png` / `fig_consistency.png` | 支持视角数与 TP 率、按尺寸的一致性分离度 | `probe_multiview_consistency.py` |
+| `fig_slicing_tuning.png` | 切片参数寻优（含混淆组诚实标注） | `make_tuning_fig.py` |
+| `fig_column_vs_grid_abs.png` | **列切分 vs 方形网格**（绝对 AP，两个基线 + 阴影） | `make_colgrid_fig.py` |
+| `fig_learner_vs_hand.png` | 手工计数权重 vs 逻辑回归/MLP 学习器（零参数论证） | `exp_learner_fig.py` |
+| `fig_pareto.png` | 精度-算力 Pareto 前沿 + per-image oracle 上界 | `exp_analysis.py` |
+| `fig_realtime.png` | 实时性：TensorRT FP16 与批量切片实测 | `exp_trt_batch.py` |
+| `fig1_size_missrate.png` / `fig2_oracle.png` / `fig3_pareto.png` / `fig4_gt_size.png` | 误差分解四联图 | `make_figures.py` |
+
+**核心三图**
+
+![全栈阶梯](results/figures/fig_ladder.png)
+
+![因子消融](results/figures/fig_factorial_ablation.png)
+
+![COCO 泛化](results/figures/fig_coco_generalization.png)
+
 ## 实验完成度与未做项
 
 | 项 | 状态 |
