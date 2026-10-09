@@ -397,6 +397,41 @@ python scripts/visualize_models.py
 
 ![COCO 泛化](results/figures/fig_coco_generalization.png)
 
+## 独立复现（第三方环境，纯 CPU）
+
+外部独立复现报告：[`docs/RESULTS_REPRODUCTION_INDEPENDENT.md`](docs/RESULTS_REPRODUCTION_INDEPENDENT.md)。
+在 **Windows / 纯 CPU / ultralytics 8.4.173（未打补丁）/ 自备 VisDrone val** 上：
+
+- 全栈表逐位复现：0.1731 → 0.1876 → 0.2474 → 0.2749/0.2750 → **0.2788**（MV-Fuse）；
+- 内部口径 `yolo val` 表复现：0.186 / 0.203 / **0.269**（max_det=1000）/ 0.263（max_det=300）；
+- MV-Fuse 的 6 个变体（全量 548 + 留出 274）逐位复现，含 **0.2788 / 0.4754**。
+
+复现中另有两个额外产出：
+
+1. **延迟 NMS 融合**（视角内不做 NMS、融合后统一做一次；同 4 次前向）：
+   0.2749 → **0.2790**，再叠加一致性重打分 → **0.2816 / 0.4824**（相对 MV-Fuse +0.0028）。
+   脚本 `scripts/probe_deferred_nms_fusion.py`，尚未经作者复核。
+2. **一个会污染评测的坑**：同一进程里调用过一次 `predict(nms=False)` 后，再调用不带 `nms`
+   参数的 `predict` 会继承"关闭 NMS"状态（实测框数 1665 → 3000 → 3000）。
+   任何混合使用两种调用的评测都会失真——本仓库新增脚本因此全部**显式**传 `nms=True/False`。
+
+### 训练侧也做了独立复现（2026-10-08）
+
+不只是"用发布权重跑评测"——第三方在**不同环境**下从 COCO 预训练 `yolo26n.pt` 出发，
+按 `scripts/run_p2_960.sh` 的配置（P2 结构 / imgsz 960 / batch 4 / 100 epoch / seed 0）
+**完整重训了一遍**，权重见 `weights/yolo26n-visdrone-p2-960-retrained.pt`：
+
+| 指标 | 复现权重 | 本仓库发布权重 | 差值 |
+|---|---|---|---|
+| `yolo val` max_det=1000 mAP50-95 | **0.2692** | 0.269 | +0.0002 |
+| COCO 协议 AP50-95 | **0.2497** | 0.2474 | +0.0023 |
+| + 尺寸门控切片融合 | **0.2764** | 0.2750 | +0.0014 |
+| + MV-Fuse 一致性重打分 | **0.2809** | 0.2788 | +0.0021 |
+
+逐轮曲线 11 个对照点全部在 ±0.0034 以内。详见
+[`docs/RESULTS_TRAIN_REPRO.md`](docs/RESULTS_TRAIN_REPRO.md) 与 [`results/train_repro/`](results/train_repro/)。
+**差异在单种子噪声内，应视为等价而非改进。**
+
 ## 实验完成度与未做项
 
 | 项 | 状态 |
@@ -405,7 +440,9 @@ python scripts/visualize_models.py
 | 与公开 VisDrone 方法的对比 | ✅ 已完成（见上表，注意协议 caveat） |
 | 跨数据集泛化（COCO val2017：检测器 + 方法两组） | ✅ 已完成（见上节） |
 | 各配置的**多种子**重复 | ❌ **未做** —— 主结果均为**单种子**训练；引用差值时应按种子噪声量级谨慎处理 |
+| **延迟 NMS 融合**的多种子复核（第三方提出，+0.0028~+0.0041 量级） | ⚠️ **未复核** —— 脚本 `scripts/probe_deferred_nms_fusion.py`，需作者复核后方可引用 |
 | 部分切片布局 / overlap 的全量扫描 | ⚠️ 部分为 **120 图子集**（已在表中标注），其余为全量 548 图 |
+
 
 ## 许可
 
