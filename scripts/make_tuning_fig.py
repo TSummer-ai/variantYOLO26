@@ -79,7 +79,7 @@ ax.grid(axis="x", alpha=0.3)
 fig.suptitle("Tiled-inference hyperparameter sweep (VisDrone val subset, COCO protocol) — "
              "monotone, same-direction evidence", fontsize=11)
 fig.tight_layout(rect=[0, 0, 1, 0.94])
-out = FIG / "fig_slicing_tuning.png"
+out = FIG / "切片参数寻优.png"
 fig.savefig(out, dpi=170); plt.close(fig)
 print(f"已生成 {out}")
 

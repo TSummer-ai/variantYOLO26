@@ -178,7 +178,7 @@ def fig_oracle(ax):
 def fig_pareto(ax, compact: bool = False):
     """精度-延迟帕累托（fuse 后部署口径）。
 
-    compact=True 用于 fig_all 的小面板：改用时序图例，避免标注互相压字。
+    compact=True 用于 误差分解四联图 的小面板：改用时序图例，避免标注互相压字。
     """
     # 每点的标注方位（错开，避免互相压字）；ha/va 一并给出
     off = {
@@ -328,14 +328,14 @@ def main():
         fig.suptitle("VisDrone 小目标检测：误差分解 → 表示侧优化（YOLO26n, 100 epoch，效率为 fuse 后口径）",
                      fontsize=14)
         fig.tight_layout()
-        _save(fig, out / "fig_all.png", 140)
+        _save(fig, out / "误差分解四联图.png", 140)
         plt.close(fig)
 
-        for name, fn in (("fig1_size_missrate", fig_size_missrate), ("fig2_oracle", fig_oracle),
-                         ("fig3_pareto", fig_pareto), ("fig4_gt_size", fig_gt_size)):
+        for name, fn in (("分尺寸漏检率", fig_size_missrate), ("误差分解四象限", fig_oracle),
+                         ("精度延迟帕累托", fig_pareto), ("误差分解_真值尺寸分布", fig_gt_size)):
             f, ax = plt.subplots(figsize=(7, 5))
             fn(ax)
-            if name == "fig3_pareto":
+            if name == "精度延迟帕累托":
                 f.tight_layout(rect=(0, 0.03, 1, 1))
             else:
                 f.tight_layout()
@@ -354,7 +354,7 @@ def main():
                    fontsize=13)
         f.tight_layout(rect=(0, 0.04, 1, 1))
         f.text(0.5, 0.012, RECHECK_NOTE, ha="center", fontsize=8.5, color="#555555")
-        _save(f, out / "fig_tradeoff.png", 140)
+        _save(f, out / "精度与计算量权衡.png", 140)
         plt.close(f)
 
         f, ax = plt.subplots(figsize=(9.5, 6))
@@ -362,7 +362,7 @@ def main():
         ax.set_title("精度 - 速度折线图（VisDrone val, YOLO26n, 100 epoch, fuse 后口径）")
         f.tight_layout(rect=(0, 0.04, 1, 1))
         f.text(0.5, 0.012, RECHECK_NOTE, ha="center", fontsize=8, color="#555555")
-        _save(f, out / "fig_tradeoff_latency.png", 150)
+        _save(f, out / "精度与延迟权衡.png", 150)
         plt.close(f)
 
     for p in written:

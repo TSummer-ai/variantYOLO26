@@ -66,6 +66,6 @@ ax[1].grid(axis="y", alpha=0.3)
 fig.suptitle("Cross-dataset generalization on COCO val2017 "
              "(5,000 images, COCO protocol, faster-coco-eval)", fontsize=12)
 fig.tight_layout(rect=[0, 0, 1, 0.92])
-out = FIG / "fig_coco_generalization.png"
+out = FIG / "COCO跨数据集泛化.png"
 fig.savefig(out, dpi=170); plt.close(fig)
 print(f"✅ {out}")

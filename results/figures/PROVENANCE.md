@@ -16,7 +16,7 @@
 |---|---|
 | `python scripts/make_figures_v2.py --out <dir>` | 全部 7 张 |
 | `python scripts/make_figures.py` | 四联图 + fig1..4（**已改为转发到 v2**） |
-| `python scripts/make_tradeoff_figure.py` | fig_tradeoff / fig_tradeoff_latency（**已改为转发到 v2**） |
+| `python scripts/make_tradeoff_figure.py` | 精度与计算量权衡 / 精度与延迟权衡（**已改为转发到 v2**） |
 
 > 这两个旧脚本里原有的硬编码效率数据（未 fuse 口径）已删除，改成 `runpy` 转发到
 > `make_figures_v2.py`，并且**用脚本自身位置定位仓库**（不依赖 `YOLO_ROOT`，
@@ -29,14 +29,14 @@
 
 | 图 | 数据源 | 是否过时 | 原因 |
 |---|---|---|---|
-| `fig1_size_missrate` | `results/oracle_logs/*.log`（2026-09-27） | **否** | 数据未变，重画后与旧图逐值一致 |
-| `fig2_oracle` | 同上 | **否** | 同上 |
-| `fig4_gt_size` | `datasets/visdrone/val.txt` | **否** | 数据集未变 |
-| `fig3_pareto` | 硬编码效率数据 | **是** | 用的是**未 fuse** 口径 |
-| `fig_all` | 上述四者 | **部分** | 仅 (c) 面板过时 |
-| `fig_tradeoff` | 硬编码效率数据 | **是** | 全部 GFLOPs / 延迟都偏高 |
-| `fig_tradeoff_latency` | 同上 | **是** | 同上 |
-| `viz_heads_baseline_100ep`、`viz_models_compare` | 需 GPU + 数据集重跑 | 未处理 | 定性可视化，非数据对比图；本轮 GPU 不可用 |
+| `分尺寸漏检率` | `results/oracle_logs/*.log`（2026-09-27） | **否** | 数据未变，重画后与旧图逐值一致 |
+| `误差分解四象限` | 同上 | **否** | 同上 |
+| `误差分解_真值尺寸分布` | `datasets/visdrone/val.txt` | **否** | 数据集未变 |
+| `精度延迟帕累托` | 硬编码效率数据 | **是** | 用的是**未 fuse** 口径 |
+| `误差分解四联图` | 上述四者 | **部分** | 仅 (c) 面板过时 |
+| `精度与计算量权衡` | 硬编码效率数据 | **是** | 全部 GFLOPs / 延迟都偏高 |
+| `精度与延迟权衡` | 同上 | **是** | 同上 |
+| `双头预测可视化`、`三模型预测对比` | 需 GPU + 数据集重跑 | 未处理 | 定性可视化，非数据对比图；本轮 GPU 不可用 |
 
 > 根因：2026-10-02 的效率口径更正。旧图在**未 fuse** 的模型上测 GFLOPs/延迟，
 > 会把推理时不用的 one2one 分支也算进去（`ultralytics/nn/modules/head.py:183-190`），
@@ -123,3 +123,43 @@
 3. **`viz_*` 两张定性图**未重新生成（需 GPU + 数据集）。
 4. 仓库里 `results/FINAL_COMPARISON.md` 仍写着「17.3 vs 7.7 GFLOPs」（未 fuse 旧值），
    属于文字表格的同类过时问题，本轮未改动。
+
+---
+
+## 5. 图名中文化对照（2026-10-09）
+
+为便于中文论文/报告直接引用，本目录全部图片改为中文名，README 与出图脚本中的引用已同步更新。
+
+| 原名 | 现名 |
+|---|---|
+| `fig_ladder.png` | `全栈精度阶梯图.png` |
+| `fig_factorial_ablation.png` | `因子消融_2x2x2.png` |
+| `fig_coco_generalization.png` | `COCO跨数据集泛化.png` |
+| `fig_views.png` | `支持视角数与真阳率.png` |
+| `fig_consistency.png` | `一致性分离度_按尺寸.png` |
+| `fig_slicing_tuning.png` | `切片参数寻优.png` |
+| `fig_column_vs_grid_abs.png` | `列切分与方形网格对比.png` |
+| `fig_learner_vs_hand.png` | `学习器与手工权重对比.png` |
+| `fig_pareto.png` | `精度算力帕累托前沿.png` |
+| `fig_realtime.png` | `实时性与批量切片.png` |
+| `fig1_size_missrate.png` | `分尺寸漏检率.png` |
+| `fig2_oracle.png` | `误差分解四象限.png` |
+| `fig3_pareto.png` | `精度延迟帕累托.png` |
+| `fig4_gt_size.png` | `误差分解_真值尺寸分布.png` |
+| `fig_all.png` | `误差分解四联图.png` |
+| `fig_tradeoff.png` | `精度与计算量权衡.png` |
+| `fig_tradeoff_latency.png` | `精度与延迟权衡.png` |
+| `viz_heads_baseline_100ep.png` | `双头预测可视化.png` |
+| `viz_models_compare.png` | `三模型预测对比.png` |
+| `fig_column_vs_grid.png` | `列切分与方形网格_旧版.png` |
+| `2026-10-08_19-47.png` | `列切分与网格_绝对值面板.png` |
+| `BC4532D2C3638746F03C0008DD994390.jpg` | `切片参数寻优_旧版.png` |
+
+**说明**：
+1. 所有引用点（`README.md`、`PROVENANCE.md`、`scripts/*.py` 的输出路径）均已同步，仓库内不再残留旧名；
+2. `BC4532…jpg` 原扩展名有误（实为 PNG，2880×832），改名时一并修正为 `.png`；
+3. 以下 5 张图**重命名前后均无任何引用**，属散图/重复导出，建议确认后删除：
+   `列切分与方形网格_旧版.png`（新版为 `列切分与方形网格对比.png`）、
+   `列切分与网格_绝对值面板.png`、
+   `切片参数寻优_旧版.png`（新版为 `切片参数寻优.png`）、
+   `双头预测可视化.png`、`三模型预测对比.png`。

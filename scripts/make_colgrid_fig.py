@@ -123,6 +123,6 @@ ax.grid(alpha=0.3)
 fig.suptitle("Why column-splitting beats square grids on wide (1360x765) VisDrone images "
              "(imgsz=960, overlap=0.2, single row)", fontsize=12)
 fig.tight_layout(rect=[0, 0, 1, 0.955])
-out = FIG / "fig_column_vs_grid_abs.png"
+out = FIG / "列切分与方形网格对比.png"
 fig.savefig(out, dpi=170); plt.close(fig)
 print(f"已生成 {out}")

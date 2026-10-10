@@ -2,11 +2,11 @@
 """生成论文/参赛用的汇总图表（纯读日志，不需要 GPU）。
 
 产出 figures/ 下：
-  fig1_size_missrate.png  分尺寸漏检率：base@640 / P2@640 / P2@960（机制图）
-  fig2_oracle.png         oracle 四象限分解（三配置）
-  fig3_pareto.png         精度-延迟帕累托
-  fig4_gt_size.png        GT 尺寸分布 @640 vs @960
-  fig_all.png             四联图
+  分尺寸漏检率.png  分尺寸漏检率：base@640 / P2@640 / P2@960（机制图）
+  误差分解四象限.png         oracle 四象限分解（三配置）
+  精度延迟帕累托.png         精度-延迟帕累托
+  误差分解_真值尺寸分布.png        GT 尺寸分布 @640 vs @960
+  误差分解四联图.png             四联图
 """
 
 from __future__ import annotations
@@ -181,11 +181,11 @@ def main():
     fig_gt_size(axes[1, 1])
     fig.suptitle("VisDrone 小目标检测：误差分解 → 表示侧优化（YOLO26n, 100 epoch）", fontsize=14)
     fig.tight_layout()
-    fig.savefig(OUT / "fig_all.png", dpi=140)
-    print("saved", OUT / "fig_all.png")
+    fig.savefig(OUT / "误差分解四联图.png", dpi=140)
+    print("saved", OUT / "误差分解四联图.png")
 
-    for name, fn in (("fig1_size_missrate", fig_size_missrate), ("fig2_oracle", fig_oracle),
-                     ("fig3_pareto", fig_pareto), ("fig4_gt_size", fig_gt_size)):
+    for name, fn in (("分尺寸漏检率", fig_size_missrate), ("误差分解四象限", fig_oracle),
+                     ("精度延迟帕累托", fig_pareto), ("误差分解_真值尺寸分布", fig_gt_size)):
         f, ax = plt.subplots(figsize=(7, 5))
         fn(ax)
         f.tight_layout()

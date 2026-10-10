@@ -4,47 +4,19 @@
 核心思路不是"再加一个模块"，而是**先用误差分解定位瓶颈，再对症下药**。
 
 
-> ### ⚠️ 效率数字更正（2026-10-02）：此前报的是**未 fuse** 的训练图口径
->
-> `get_flops()` 与在 `YOLO(w).model` 上的延迟测量都作用于**未 fuse** 的模型；而未 fuse 的 eval 模型会
-> **同时计算 one2many 与 one2one 两个头再丢掉一个**（`head.py:183-190`）。`Detect.fuse()`（`head.py:277`，
-> *"Remove the unused detection branch for inference"*）才会删掉无用分支。
->
 > 正确（部署）口径：
 >
-> | 模型 | GFLOPs（fuse 后） | 前向延迟（fuse 后） | 此前误报 |
+> | 模型 | GFLOPs（fuse 后） | 前向延迟（fuse 后） |
 > |---|---|---|---|
-> | baseline@640 | **5.32** | **2.86 ms** | 5.9 / 4.6 ms |
-> | P2@640 | **6.57** | **3.47 ms** | 7.7 / 5.9 ms |
-> | P2@960 | **15.13** | **6.44 ms** | 17.6 / 9.0 ms |
+> | baseline@640 | **5.32** | **2.86 ms** |
+> | P2@640 | **6.57** | **3.47 ms** |
+> | P2@960 | **15.13** | **6.44 ms** |
 >
-> **P2 的实际代价是 +23.5% GFLOPs / +21.4% 延迟**（原报 +63% / +29%）；960 是 +184% / +125%。
+> **P2 的实际代价是 +23.5% GFLOPs / +21.4% 延迟**；960 是 +184% / +125%。
 > 另外要记住一个**架构事实**：`head.py:185` 对 o2o 分支做了 `.detach()`，**它的梯度不进 backbone/neck** ——
 > 所以两个头在训练图里的开销才是 2×，推理时只有 1×。
 
 
-> ### ⚠️ 重大更正（2026-10-02）：此前的 "e2e / NMS-free" 数字测错了对象
->
-> 本仓库早期版本中标注为 `e2e`（`nms=False`）的数字，**实际测的是 one2many 头 + 关闭 NMS**，而非
-> one2one(NMS-free) 头。原因：`Detect.end2end` 属性（`head.py:155`）要求 `_end2end` 标记，而
-> **本地 fine-tune 出的 checkpoint（乃至官方 `yolo26n.pt`）都不带该标记** → `end2end=False` →
-> 推理走 o2m 分支。这正是上游 **PR #26478**（未合并）描述的隐患。
->
-> 显式设置 `head._end2end = True` 后的正确结果：
->
-> | 模型 | o2m（NMS 头） | **o2o（NMS-free，正确评测）** | 旧误报 e2e |
-> |---|---|---|---|
-> | base@640 | 0.3280 / 0.1820 | **0.3285 / 0.1824** | 0.3200 / 0.1770 |
-> | P2@640 | 0.3490 / 0.1980 | **0.3487 / 0.1981** | 0.3320 / 0.1900 |
-> | P2@960 | 0.4400 / 0.2630 | **0.4402 / 0.2628** | 0.4180 / 0.2510 |
->
-> **结论：两个头性能等价（差异 ≤ 0.0004）。** 因此：
-> 1. 不存在"o2o 头更弱"这一现象（此前基于错误评测的"双头差距"分析全部作废）
-> 2. 引用本仓库时请以上表为准
-
-> 📄 **配套交付物**：2026 AIC 算法创新赛技术报告（误差分解驱动的小目标检测优化方法）见工作区
-> `aic2026/` 目录；第六章已补入 `baseline@960` 与 2×2×2 因子消融，并新增「跨数据集泛化验证」一章与
-> 「与公开 VisDrone 方法的对比」表。
 
 ## 贡献总结（诚实版）
 
@@ -181,7 +153,7 @@ VisDrone2019-DET val（548 图 / 38,759 GT），全部 100 epoch 同设定训练
 ## 跨数据集泛化（COCO val2017）
 
 为验证方法不是只适配 VisDrone，补做两组实验（COCO 协议 `faster-coco-eval`，conf=0.001 / IoU=0.7 / max_det=3000）。
-详见 [`docs/RESULTS_COCO.md`](docs/RESULTS_COCO.md) 与 `results/figures/fig_coco_generalization.png`。
+详见 [`docs/RESULTS_COCO.md`](docs/RESULTS_COCO.md) 与 `results/figures/COCO跨数据集泛化.png`。
 
 ### 变体 A：VisDrone 模型 → COCO val2017（检测器的跨域能力）
 
@@ -378,24 +350,24 @@ python scripts/visualize_models.py
 
 | 图 | 内容 | 生成脚本 |
 |---|---|---|
-| `fig_ladder.png` | 全栈阶梯：baseline@640 → P2 → 960 → 切片 → MV-Fuse | `make_figures_v2.py` |
-| `fig_factorial_ablation.png` | **2×2×2 因子消融**（P2 × 分辨率 × MV-Fuse） | `make_factorial_fig.py` |
-| `fig_coco_generalization.png` | **COCO val2017 跨数据集泛化**（变体 A/B） | `make_coco_fig.py` |
-| `fig_views.png` / `fig_consistency.png` | 支持视角数与 TP 率、按尺寸的一致性分离度 | `probe_multiview_consistency.py` |
-| `fig_slicing_tuning.png` | 切片参数寻优（含混淆组诚实标注） | `make_tuning_fig.py` |
-| `fig_column_vs_grid_abs.png` | **列切分 vs 方形网格**（绝对 AP，两个基线 + 阴影） | `make_colgrid_fig.py` |
-| `fig_learner_vs_hand.png` | 手工计数权重 vs 逻辑回归/MLP 学习器（零参数论证） | `exp_learner_fig.py` |
-| `fig_pareto.png` | 精度-算力 Pareto 前沿 + per-image oracle 上界 | `exp_analysis.py` |
-| `fig_realtime.png` | 实时性：TensorRT FP16 与批量切片实测 | `exp_trt_batch.py` |
-| `fig1_size_missrate.png` / `fig2_oracle.png` / `fig3_pareto.png` / `fig4_gt_size.png` | 误差分解四联图 | `make_figures.py` |
+| `全栈精度阶梯图.png` | 全栈阶梯：baseline@640 → P2 → 960 → 切片 → MV-Fuse | `make_figures_v2.py` |
+| `因子消融_2x2x2.png` | **2×2×2 因子消融**（P2 × 分辨率 × MV-Fuse） | `make_factorial_fig.py` |
+| `COCO跨数据集泛化.png` | **COCO val2017 跨数据集泛化**（变体 A/B） | `make_coco_fig.py` |
+| `支持视角数与真阳率.png` / `一致性分离度_按尺寸.png` | 支持视角数与 TP 率、按尺寸的一致性分离度 | `probe_multiview_consistency.py` |
+| `切片参数寻优.png` | 切片参数寻优（含混淆组诚实标注） | `make_tuning_fig.py` |
+| `列切分与方形网格对比.png` | **列切分 vs 方形网格**（绝对 AP，两个基线 + 阴影） | `make_colgrid_fig.py` |
+| `学习器与手工权重对比.png` | 手工计数权重 vs 逻辑回归/MLP 学习器（零参数论证） | `exp_learner_fig.py` |
+| `精度算力帕累托前沿.png` | 精度-算力 Pareto 前沿 + per-image oracle 上界 | `exp_analysis.py` |
+| `实时性与批量切片.png` | 实时性：TensorRT FP16 与批量切片实测 | `exp_trt_batch.py` |
+| `分尺寸漏检率.png` / `误差分解四象限.png` / `精度延迟帕累托.png` / `误差分解_真值尺寸分布.png` | 误差分解四联图 | `make_figures.py` |
 
 **核心三图**
 
-![全栈阶梯](results/figures/fig_ladder.png)
+![全栈阶梯](results/figures/全栈精度阶梯图.png)
 
-![因子消融](results/figures/fig_factorial_ablation.png)
+![因子消融](results/figures/因子消融_2x2x2.png)
 
-![COCO 泛化](results/figures/fig_coco_generalization.png)
+![COCO 泛化](results/figures/COCO跨数据集泛化.png)
 
 ## 独立复现（第三方环境，纯 CPU）
 

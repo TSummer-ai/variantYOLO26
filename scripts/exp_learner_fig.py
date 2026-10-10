@@ -154,7 +154,7 @@ def main():
     fig.suptitle("Cross-view-agreement re-scoring: a zero-parameter rule beats learned re-scorers "
                  "(VisDrone val, held-out half, identical candidate pool)", fontsize=12)
     fig.tight_layout(rect=[0, 0, 1, 0.955])
-    out_png = FIG / "fig_learner_vs_hand.png"
+    out_png = FIG / "学习器与手工权重对比.png"
     fig.savefig(out_png, dpi=170); plt.close(fig)
     print(f"已生成 {out_png}\n已写入 {OUT}")
 

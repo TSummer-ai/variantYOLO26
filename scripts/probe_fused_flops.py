@@ -5,7 +5,7 @@
 会同时计入 one2many + one2one 两个头（`ultralytics/nn/modules/head.py:183-190`），
 因此偏高（baseline@640 报 5.9，实际 5.32）。本脚本先 `.fuse()` 再 profile。
 
-用途：为 fig3_pareto / fig_tradeoff 提供权威的 GFLOPs，
+用途：为 精度延迟帕累托 / 精度与计算量权衡 提供权威的 GFLOPs，
 包括此前没有 fuse 口径数据的两个点（baseline@960 推理、P2-pruned）。
 
 用法: python probe_fused_flops.py

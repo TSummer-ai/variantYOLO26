@@ -80,6 +80,6 @@ ax[2].legend(fontsize=8, loc="upper left"); ax[2].grid(axis="y", alpha=0.3)
 fig.suptitle("Complete factorial ablation on VisDrone2019-DET val: "
              "P2 level x input resolution x MV-Fuse", fontsize=12)
 fig.tight_layout(rect=[0, 0, 1, 0.93])
-out = FIG / "fig_factorial_ablation.png"
+out = FIG / "因子消融_2x2x2.png"
 fig.savefig(out, dpi=170); plt.close(fig)
 print(f"已生成 {out}")

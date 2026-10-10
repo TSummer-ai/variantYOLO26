@@ -4,7 +4,7 @@
 数据全部实测：forward latency 来自 bench_models.py（RTX 4060 Laptop, FP32, batch 1, 100 次平均），
 mAP 来自 yolo val（VisDrone val, 548 图）。所有配置都是 100 epoch 同设定训练。
 
-产出 figures/fig_tradeoff.png（双面板：vs 延迟 / vs GFLOPs）
+产出 figures/精度与计算量权衡.png（双面板：vs 延迟 / vs GFLOPs）
 """
 
 from __future__ import annotations
@@ -71,15 +71,15 @@ def main():
     axes[1].set_title("(b) 精度 - 计算量")
     fig.suptitle("VisDrone 小目标检测：精度-速度权衡（实心=同分辨率训练推理，空心=max_det=1000）", fontsize=13)
     fig.tight_layout()
-    fig.savefig(OUT / "fig_tradeoff.png", dpi=140)
-    print("saved", OUT / "fig_tradeoff.png")
+    fig.savefig(OUT / "精度与计算量权衡.png", dpi=140)
+    print("saved", OUT / "精度与计算量权衡.png")
 
     f, ax = plt.subplots(figsize=(9, 6))
     panel(ax, "lat", "单图前向延迟 (ms, RTX 4060 Laptop, FP32) — 越左越好")
     ax.set_title("精度 - 速度折线图（VisDrone val, YOLO26n, 100 epoch）")
     f.tight_layout()
-    f.savefig(OUT / "fig_tradeoff_latency.png", dpi=150)
-    print("saved", OUT / "fig_tradeoff_latency.png")
+    f.savefig(OUT / "精度与延迟权衡.png", dpi=150)
+    print("saved", OUT / "精度与延迟权衡.png")
 
 
 if __name__ == "__main__":
